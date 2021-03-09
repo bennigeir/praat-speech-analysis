@@ -1,0 +1,159 @@
+---
+title: "R Notebook"
+output: html_notebook
+
+```{r}
+# load packages
+library(tidyverse)
+library(vowels)
+library(dplyr)
+library(ggplot2)
+# load data
+ns <- read.table("https://slcladal.github.io/data/rpvowels.txt", header = T, sep = "\t")
+nns <- read.table("https://slcladal.github.io/data/vowels.txt", header = T, sep = "\t") %>% dplyr::select(-file)
+
+```
+
+Then put the data all into one table with a "Speaker" column ("NS" or "NNS")
+
+```{r}
+dplyr::rename(voweldata, Word = item)
+```
+
+```{r}
+
+ns <- voweldata %>% dplyr::filter(Speaker == "NS")
+nns <- voweldata %>% dplyr::filter(Speaker == "NNS")
+
+ggplot(voweldata, aes(F2, F1, color = Speaker, group = Word, fill = Speaker)) +
+  geom_point(alpha = .1) +
+  geom_text(data = voweldata, aes(x = F2_mean, y = F1_mean, label = Word), fontface = "bold")  +
+  stat_ellipse(data = ns, level = 0.50, geom = "polygon", alpha = 0.05, aes(fill = Speaker)) +
+  stat_ellipse(data = nns, level = 0.95, geom = "polygon", alpha = 0.05, aes(fill = Speaker)) +
+  scale_x_reverse(breaks = seq(500, 3000, 500), labels = seq(500, 3000, 500)) + scale_y_reverse() +
+  scale_color_manual(breaks = c("Learner", "NS"), values = c("orange", "gray40")) +
+  theme_bw() +
+  theme(legend.position = "top",
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+
+```
+
+```{r}
+luke_vowels <- read.table('~/Documents/praat/luke_vowels_excel.csv', header = T, sep=';')
+luke_vowels <- dplyr::rename(luke_vowels, Word = X...Word)
+voweldata <- dplyr::union(luke_vowels, voweldata)
+
+```
+
+```{r}
+noelle_vowels <- read.table('~/Documents/praat/noelle_vowels_excel.csv', header = T, sep=';')
+noelle_vowels <- dplyr::rename(noelle_vowels, Word = X...Word)
+
+noelle_vowels %>%
+  group_by(Speaker, Word) %>%
+  summarise(F1_mean = mean(F1)) -> F1_means_n
+
+noelle_vowels %>%
+  group_by(Speaker, Word) %>%
+  summarise(F2_mean = mean(F2)) -> F2_means_n
+
+noelle_vowels <- dplyr::inner_join(noelle_vowels, F1_means_n, by = c("Speaker", "Word"))
+
+noelle_vowels <- dplyr::inner_join(noelle_vowels, F2_means_n, by = c("Speaker", "Word"))
+
+voweldata <- dplyr::union(noelle_vowels, voweldata)
+
+```
+
+
+```{r}
+lucy_vowels <- read.table('~/Documents/praat/vowel_chart/formants2.csv', header = T, sep=',')
+lucy_vowels <- dplyr::rename(lucy_vowels, Word = word)
+lucy_vowels <- dplyr::select(lucy_vowels, Word, F1, F2)
+lucy_vowels <- dplyr::mutate(lucy_vowels, Speaker = 'Lucy5', trial = 0)
+
+lucy_vowels %>%
+  group_by(Speaker, Word) %>%
+  summarise(F1_mean = mean(F1)) -> F1_means_l
+
+lucy_vowels %>%
+  group_by(Speaker, Word) %>%
+  summarise(F2_mean = mean(F2)) -> F2_means_l
+
+lucy_vowels <- dplyr::inner_join(lucy_vowels, F1_means_l, by = c("Speaker", "Word"))
+
+lucy_vowels <- dplyr::inner_join(lucy_vowels, F2_means_l, by = c("Speaker", "Word"))
+
+lucy_vowels <- dplyr::filter(lucy_vowels, Word != 'silent')
+
+voweldata <- dplyr::union(lucy_vowels, voweldata)
+```
+
+```{r}
+lucy_vowels <- read.table('~/Documents/praat/lucy4_vowels.csv', header = T, sep=';')
+
+lucy_vowels <- dplyr::rename(lucy_vowels, Word = X...Word)
+
+lucy_vowels %>%
+  group_by(Speaker, Word) %>%
+  summarise(F1_mean = mean(F1)) -> F1_means_l
+
+lucy_vowels %>%
+  group_by(Speaker, Word) %>%
+  summarise(F2_mean = mean(F2)) -> F2_means_l
+  
+lucy_vowels <- dplyr::inner_join(lucy_vowels, F1_means_l, by = c("Speaker", "Word"))
+
+lucy_vowels <- dplyr::inner_join(lucy_vowels, F2_means_l, by = c("Speaker", "Word"))
+
+voweldata <- dplyr::union(lucy_vowels, voweldata)
+```
+
+
+```{r}
+voweldata %>%
+  group_by(Speaker, Word) %>%
+  summarise(F1_mean = mean(F1)) -> F1_means
+
+voweldata %>%
+  group_by(Speaker, Word) %>%
+  summarise(F2_mean = mean(F2)) -> F2_means
+
+voweldata <- dplyr::inner_join(voweldata, F1_means, by = c("Speaker", "Word"))
+
+voweldata <- dplyr::inner_join(voweldata, F2_means, by = c("Speaker", "Word"))
+
+voweldata$Word[voweldata$Word == 'heard'] <- 'herd'
+```
+
+```{r}
+voweldata_luke <- dplyr::filter(voweldata, Speaker == "Noelle" | Speaker == "Lucy")
+
+ggplot(voweldata_luke, aes(x = F2, y = F1, color = Speaker, group = Word, fill = Speaker)) +
+  geom_point(alpha = 0.3) +
+  geom_text(data = voweldata_luke, aes(x = F2_mean, y = F1_mean, label = Word), fontface = "bold") +
+  scale_x_reverse(breaks = seq(500, 3000, 500), labels = seq(500, 3000, 500)) + scale_y_reverse() +
+  scale_color_manual(breaks = c("Lucy", "Noelle"), values = c("green", "blue")) +
+  theme_bw() +
+  theme(legend.position = "top",
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+
+```
+
+
+```{r}
+voweldata_luke <- dplyr::filter(voweldata, Speaker == "Luke" | Speaker == "RP" | Speaker == "Lucy4")
+
+ggplot(voweldata_luke, aes(x = F2, y = F1, color = Speaker, group = Word, fill = Speaker)) +
+  geom_point(alpha = 0.8) +
+  geom_text(data = voweldata_luke, aes(x = F2_mean, y = F1_mean, label = Word), fontface = "bold") +
+  stat_ellipse(data = dplyr::filter(voweldata, Speaker == "RP"), level = 0.50, geom = "polygon", alpha = 0.05, aes(fill = Speaker)) +
+  scale_x_reverse(breaks = seq(500, 3000, 500), labels = seq(500, 3000, 500)) + scale_y_reverse() +
+  scale_color_manual(breaks = c("Lucy4", "Luke", "RP"), values = c( "blue", "orange", "gray40")) +
+  theme_bw() +
+  theme(legend.position = "top",
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+```
