@@ -28,11 +28,17 @@ df.reset_index(inplace=True)
 
 # set X and Y
 Y = df['native_isl'].values.ravel()
+    # one-hot encode the words
 X = pd.get_dummies(df[['word']]).join(df)
 X = X.drop(columns=['name', 'age', 'native_lang', 'spoken_lang', 'word', 'native_isl'])
 
 # define classification model
 clf = svm.SVC()
+
+# define classification model
+clf = svm.SVC()
+clf2 = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1)
+clf3 = KNeighborsClassifier()
 
 # define data splitting method
 kf = KFold(n_splits=2, random_state=11, shuffle=True)
@@ -40,6 +46,8 @@ kf.get_n_splits(X)
 print(kf)
 
 scores = []
+scores2 = []
+scores3 = []
 for train_index, test_index in kf.split(X):
     # split data
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
@@ -52,5 +60,9 @@ for train_index, test_index in kf.split(X):
 
     # run model
     scores.append(clf.fit(X_train, Y_train).score(X_test, Y_test))
+    scores2.append(clf2.fit(X_train, Y_train).score(X_test, Y_test))
+    scores3.append(clf3.fit(X_train, Y_train).score(X_test, Y_test))
 
-print(scores)
+print('SVC scores: ', scores)
+print('MLPClassifier scores:', scores2)
+print('KNeighboursClassifier scores: ', scores3)
